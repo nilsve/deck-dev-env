@@ -1,0 +1,43 @@
+FROM ubuntu
+
+RUN apt-get update
+RUN apt-get install -y nano libssl-dev pkg-config rustup build-essential
+
+RUN rustup default stable
+
+RUN apt-get install -y curl ca-certificates tzdata net-tools openssl unzip
+
+# Install libtorch
+RUN curl -L https://download.pytorch.org/libtorch/cu121/libtorch-cxx11-abi-shared-with-deps-2.1.0%2Bcu121.zip -o libtorch.zip
+RUN unzip libtorch.zip -d /
+
+RUN cargo install cargo-edit
+
+RUN apt-get install -y x11-apps
+
+ENV LIBTORCH=/libtorch
+ENV LD_LIBRARY_PATH="/libtorch/lib:$LD_LIBRARY_PATH"
+
+# Create user with same UID and GID as host user
+ARG USER_ID
+ARG GROUP_ID
+
+RUN if getent passwd ${USER_ID} >/dev/null; then \
+        existing_user=$(getent passwd ${USER_ID} | cut -d: -f1) && \
+        usermod -l ${USERNAME} ${existing_user} && \
+        groupmod -n ${USERNAME} $(id -gn ${existing_user}) && \
+        usermod -d /home/${USERNAME} -m ${USERNAME}; \
+    else \
+        groupadd -g ${GROUP_ID} ${USERNAME} && \
+        useradd -m -u ${USER_ID} -g ${GROUP_ID} ${USERNAME}; \
+    fi
+
+# Set working directory to user's home directory
+WORKDIR /home/hostuser
+
+# Set environment variables for user
+ENV USER=hostuser
+ENV HOME=/home/hostuser
+
+# Change to the new user
+USER hostuser

@@ -1,0 +1,8 @@
+services:
+  devenv:
+    build: .
+    tty: true
+    stdin_open: true
+    volumes:
+      - /home/deck:/home/deck
+      - /nix:/nix
